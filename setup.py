@@ -16,5 +16,5 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/PlantandFoodResearch/synthetic-root-generator",
     packages=['synthetic_root_generator'],
-    python_requires='>=3.9',
+    python_requires='>=3.10',
 )
