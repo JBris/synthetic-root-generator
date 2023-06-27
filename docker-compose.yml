@@ -1,6 +1,32 @@
 version: "3.8"
 
 services:
+  flask:
+    image: python:${PYTHON_TAG}
+    container_name: ${PROJECT_NAME}-flask
+    hostname: flask
+    restart: on-failure:1
+    stop_grace_period: 10s
+    env_file: .env
+    mem_limit: 10g
+    mem_reservation: 1g
+    environment:
+      REDIS_HOST: $REDIS_HOST
+      FLASK_PORT: $FLASK_PORT
+      FLASK_ENV: $FLASK_ENV
+      FLASK_DEBUG: $FLASK_DEBUG
+      CELERY_BROKER_URL: $CELERY_BROKER_URL
+      CELERY_RESULT_BACKEND: $CELERY_RESULT_BACKEND
+    build:
+      dockerfile: Dockerfile
+      context: ./server
+      args:
+        PYTHON_TAG: $PYTHON_TAG
+        FLASK_PORT: $FLASK_PORT
+    ports:
+      - ${FLASK_PORT}:5000
+    command: >
+      gunicorn app:app --worker-class gevent --workers=${GUNICORN_THREADS} --threads=${GUNICORN_THREADS} -b :5000 --timeout 600 --reload --access-logfile -
 
   mlflow:
     image: python:${PYTHON_TAG}
@@ -25,7 +51,12 @@ services:
     ports:
       - ${MLFLOW_PORT}:5000
     command: >
-      mlflow server  --serve-artifacts  --host 0.0.0.0 --port 5000  --backend-store-uri "${MLFLOW_BACKEND_STORE_URI}"  --default-artifact-root s3://mlflow/
+      mlflow server  
+      --serve-artifacts  
+      --host 0.0.0.0 
+      --port 5000  
+      --backend-store-uri "${MLFLOW_BACKEND_STORE_URI}"  
+      --default-artifact-root s3://mlflow/
 
   minio:
     image: minio/minio:${MINIO_TAG}
@@ -57,7 +88,12 @@ services:
     depends_on:
       - minio
     entrypoint: >
-      /bin/sh -c ' sleep 5;  /usr/bin/mc config host add s3 http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY} --api S3v4; [[ ! -z "`/usr/bin/mc ls s3 | grep challenge`" ]] || /usr/bin/mc mb s3/mlflow; /usr/bin/mc policy download s3/mlflow; [[ ! -z "`/usr/bin/mc ls s3 | grep challenge`" ]] || /usr/bin/mc mb s3/data; /usr/bin/mc policy download s3/data; exit 0; '
+      /bin/sh -c ' sleep 5;  
+      /usr/bin/mc config host add s3 http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY} --api S3v4; 
+      [[ ! -z "`/usr/bin/mc ls s3 | grep challenge`" ]] || /usr/bin/mc mb s3/mlflow; 
+      /usr/bin/mc policy download s3/mlflow; 
+      [[ ! -z "`/usr/bin/mc ls s3 | grep challenge`" ]] || /usr/bin/mc mb s3/data; 
+      /usr/bin/mc policy download s3/data; exit 0; '
 
   celery:
     image: python:${PYTHON_TAG}
@@ -69,11 +105,12 @@ services:
     mem_limit: 10g
     mem_reservation: 1g
     environment:
+      REDIS_HOST: $REDIS_HOST
       FLASK_PORT: $FLASK_PORT
       FLASK_ENV: $FLASK_ENV
       FLASK_DEBUG: $FLASK_DEBUG
-      CELERY_BROKER_URL: redis://redis:${REDIS_PORT}/0
-      CELERY_RESULT_BACKEND: redis://redis:${REDIS_PORT}/0
+      CELERY_BROKER_URL: $CELERY_BROKER_URL
+      CELERY_RESULT_BACKEND: $CELERY_RESULT_BACKEND
       C_FORCE_ROOT: "true"
     build:
       dockerfile: Dockerfile
@@ -81,7 +118,7 @@ services:
       args:
         PYTHON_TAG: $PYTHON_TAG
         FLASK_PORT: $FLASK_PORT
-    command: celery --app app.celery worker --loglevel=info
+    command: celery --app app.celery_app worker --loglevel=info
 
   nginx:
     image: nginx:${NGINX_TAG}
@@ -95,6 +132,7 @@ services:
     ports:
       - ${NGINX_SERVER_PORT}:80
     volumes:
+      - ./server:/var/www/html
       - ./services/nginx/conf.d:/etc/nginx/conf.d
 
   postgres:
@@ -121,7 +159,7 @@ services:
     stop_grace_period: 10s
     env_file: .env
     environment:
-      CELERY_BROKER_URL: redis://redis:${REDIS_PORT}/0
+      CELERY_BROKER_URL: $CELERY_BROKER_URL
       FLOWER_PORT: "8888"
     ports:
       - ${FLOWER_PORT}:8888
@@ -129,7 +167,7 @@ services:
   redis:
     image: redis:${REDIS_TAG}
     container_name: ${PROJECT_NAME}-redis
-    hostname: redis
+    hostname: $REDIS_HOST
     restart: unless-stopped
     stop_grace_period: 10s
     env_file: .env
