@@ -1,13 +1,14 @@
 import setuptools
+from os.path import join as join_path
 
-with open("README.md", "r") as rm:
+with open(join_path("..", "README.md"), "r") as rm:
     long_description = rm.read()
 
-with open("VERSION", "r") as v:
+with open(join_path("..", "VERSION"), "r") as v:
     version = v.read()
 
 setuptools.setup(
-    name="Synthetic Root Generator",
+    name="Synthetic Root Generator Server",
     version=version,
     author="James Bristow",
     author_email="james.bristow@plantandfood.co.nz",
