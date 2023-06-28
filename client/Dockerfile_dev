@@ -1,0 +1,17 @@
+ARG NODE_TAG
+
+FROM node:${NODE_TAG}
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install
+
+ARG ANGULAR_CLI_VERSION
+
+RUN RUN npm install -g @angular/cli@${ANGULAR_CLI_VERSION}
+
+COPY . .
+
+CMD ["npm", "run", "start"]
