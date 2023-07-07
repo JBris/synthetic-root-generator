@@ -14,6 +14,4 @@ RUN apt-get update \
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-ARG FLASK_PORT
-
-EXPOSE $FLASK_PORT
+EXPOSE 5000

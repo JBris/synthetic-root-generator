@@ -1,7 +1,7 @@
 from flask import Flask, redirect
 from flask_cors import CORS
 from graphql_server.flask import GraphQLView
-from graphql_api.schema import schema
+from api.graphql.schema import schema
 from services.config import Config
 from services.cache import Cache
 from tasks.task_queue import TaskQueue
